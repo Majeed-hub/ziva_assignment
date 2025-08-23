@@ -1,0 +1,127 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Author {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  bio       String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  books Book[]
+
+  @@map("authors")
+}
+
+model Book {
+  id              String   @id @default(uuid())
+  title           String
+  isbn            String   @unique
+  publicationYear Int      @map("publication_year")
+  availableCopies Int      @default(0) @map("available_copies")
+  totalCopies     Int      @default(0) @map("total_copies")
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  authorId String @map("author_id")
+  author   Author @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  bookCopies   BookCopy[]
+  reservations Reservation[]
+
+  @@map("books")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  password  String
+  role      UserRole @default(USER)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  borrowRecords BorrowRecord[]
+  reservations  Reservation[]
+
+  @@map("users")
+}
+
+
+
+model BookCopy {
+  id        String        @id @default(uuid())
+  bookId    String        @map("book_id")
+  condition BookCondition @default(EXCELLENT)
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  book          Book           @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  borrowRecords BorrowRecord[]
+
+  @@map("book_copies")
+}
+
+model BorrowRecord {
+  id         String           @id @default(uuid())
+  userId     String           @map("user_id")
+  bookCopyId String           @map("book_copy_id")
+  borrowedAt DateTime         @default(now()) @map("borrowed_at")
+  dueDate    DateTime         @map("due_date")
+  returnedAt DateTime?        @map("returned_at")
+  status     BorrowingStatus  @default(ACTIVE)
+  createdAt  DateTime         @default(now()) @map("created_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookCopy BookCopy @relation(fields: [bookCopyId], references: [id], onDelete: Cascade)
+
+  @@map("borrow_records")
+}
+
+model Reservation {
+  id        String            @id @default(uuid())
+  userId    String            @map("user_id")
+  bookId    String            @map("book_id")
+  status    ReservationStatus @default(PENDING)
+  createdAt DateTime          @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@map("reservations")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum BookCondition {
+  EXCELLENT
+  GOOD
+  FAIR
+  POOR
+}
+
+enum BorrowingStatus {
+  ACTIVE
+  RETURNED
+  OVERDUE
+}
+
+enum ReservationStatus {
+  PENDING
+  FULFILLED
+  CANCELLED
+}
