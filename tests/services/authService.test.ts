@@ -14,12 +14,20 @@ jest.mock('../../src/config/database', () => ({
       create: jest.fn(),
       update: jest.fn(),
     },
+    refreshToken: {
+      create: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
+      updateMany: jest.fn(),
+    },
   },
 }));
 jest.mock('../../src/config/jwt', () => ({
   JWT_CONFIG: {
     secret: 'test-secret',
     expiresIn: '24h',
+    refreshSecret: 'test-refresh-secret',
+    refreshExpiresIn: '7d',
   },
 }));
 
@@ -70,14 +78,17 @@ describe('AuthService', () => {
       prisma.user.findUnique.mockResolvedValue(null);
       mockBcrypt.hash.mockResolvedValue('hashedpassword123' as never);
       prisma.user.create.mockResolvedValue(mockUser);
+      prisma.refreshToken.create.mockResolvedValue({});
       mockJwt.sign.mockReturnValue('mock.jwt.token' as any);
 
       const result = await AuthService.register(userData);
 
       expect(mockBcrypt.hash).toHaveBeenCalledWith(userData.password, 12);
       expect(prisma.user.create).toHaveBeenCalled();
+      expect(prisma.refreshToken.create).toHaveBeenCalled();
       expect(result).toHaveProperty('user');
-      expect(result).toHaveProperty('token');
+      expect(result).toHaveProperty('accessToken');
+      expect(result).toHaveProperty('refreshToken');
     });
   });
 
@@ -131,6 +142,7 @@ describe('AuthService', () => {
 
       prisma.user.findUnique.mockResolvedValue(mockUser);
       mockBcrypt.compare.mockResolvedValue(true as never);
+      prisma.refreshToken.create.mockResolvedValue({});
       mockJwt.sign.mockReturnValue('mock.jwt.token' as any);
 
       const credentials = {
@@ -141,8 +153,10 @@ describe('AuthService', () => {
       const result = await AuthService.login(credentials);
 
       expect(mockBcrypt.compare).toHaveBeenCalledWith(credentials.password, mockUser.password);
+      expect(prisma.refreshToken.create).toHaveBeenCalled();
       expect(result).toHaveProperty('user');
-      expect(result).toHaveProperty('token');
+      expect(result).toHaveProperty('accessToken');
+      expect(result).toHaveProperty('refreshToken');
       expect(result.user.email).toBe(credentials.email);
     });
   });

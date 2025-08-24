@@ -37,11 +37,14 @@ describe('AuthController', () => {
                 role: UserRole.USER,
                 createdAt: new Date(),
             };
-            const mockToken = 'mock.jwt.token';
+            const mockTokens = {
+                accessToken: 'mock.access.token',
+                refreshToken: 'mock.refresh.token'
+            };
 
             mockAuthService.register.mockResolvedValue({
                 user: mockUser,
-                token: mockToken,
+                ...mockTokens,
             });
 
             const response = await request(app)
@@ -88,11 +91,14 @@ describe('AuthController', () => {
                 role: UserRole.USER,
                 createdAt: new Date(),
             };
-            const mockToken = 'mock.jwt.token';
+            const mockTokens = {
+                accessToken: 'mock.access.token',
+                refreshToken: 'mock.refresh.token'
+            };
 
             mockAuthService.login.mockResolvedValue({
                 user: mockUser,
-                token: mockToken,
+                ...mockTokens,
             });
 
             const response = await request(app)

@@ -33,6 +33,26 @@ Content-Type: application/json
   "password": "user123"
 }
 
+### Refresh Token
+POST http://localhost:3000/api/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "YOUR_REFRESH_TOKEN_HERE"
+}
+
+### Logout (revoke refresh token)
+POST http://localhost:3000/api/auth/logout
+Content-Type: application/json
+
+{
+  "refreshToken": "YOUR_REFRESH_TOKEN_HERE"
+}
+
+### Logout from all devices
+POST http://localhost:3000/api/auth/logout-all
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
 ### Get all books (with pagination)
 GET http://localhost:3000/api/books?page=1&limit=10
 

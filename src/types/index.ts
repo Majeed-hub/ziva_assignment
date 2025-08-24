@@ -25,6 +25,15 @@ export interface RegisterRequest {
   phone?: string;
 }
 
+export interface RefreshTokenRequest {
+  refreshToken: string;
+}
+
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+}
+
 export interface CreateBookRequest {
   title: string;
   isbn: string;

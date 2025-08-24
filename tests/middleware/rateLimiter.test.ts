@@ -13,7 +13,7 @@ describe('Rate Limiting Middleware', () => {
   describe('General Rate Limiter', () => {
     beforeEach(() => {
       app.use('/api', generalRateLimit);
-      app.get('/api/test', (req, res) => {
+      app.get('/api/test', (_req, res) => {
         res.json({ message: 'success' });
       });
     });
@@ -59,7 +59,7 @@ describe('Rate Limiting Middleware', () => {
       });
 
       testApp.use('/api', testRateLimit);
-      testApp.get('/api/test', (req, res) => {
+      testApp.get('/api/test', (_req, res) => {
         res.json({ message: 'success' });
       });
 
@@ -81,7 +81,7 @@ describe('Rate Limiting Middleware', () => {
   describe('Auth Rate Limiter', () => {
     beforeEach(() => {
       app.use('/auth', authRateLimit);
-      app.post('/auth/login', (req, res) => {
+      app.post('/auth/login', (_req, res) => {
         res.json({ message: 'login success' });
       });
     });
@@ -116,7 +116,7 @@ describe('Rate Limiting Middleware', () => {
       });
 
       testApp.use('/auth', testAuthRateLimit);
-      testApp.post('/auth/login', (req, res) => {
+      testApp.post('/auth/login', (_req, res) => {
         res.json({ message: 'login success' });
       });
 

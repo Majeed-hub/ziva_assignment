@@ -2,14 +2,18 @@ import { z } from 'zod';
 
 export const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Invalid email format'),
+  email: z.string().email({ message: 'Invalid email format' }),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   phone: z.string().optional(),
 });
 
 export const loginSchema = z.object({
-  email: z.string().email('Invalid email format'),
+  email: z.string().email({ message: 'Invalid email format' }),
   password: z.string().min(1, 'Password is required'),
+});
+
+export const refreshTokenSchema = z.object({
+  refreshToken: z.string().min(1, 'Refresh token is required'),
 });
 
 export const createBookSchema = z.object({
@@ -17,10 +21,10 @@ export const createBookSchema = z.object({
   isbn: z.string().min(10, 'ISBN must be at least 10 characters'),
   publicationYear: z.number().min(1000).max(new Date().getFullYear()),
   totalCopies: z.number().min(1, 'Total copies must be at least 1'),
-  authorId: z.string().uuid('Invalid author ID').optional(),
+  authorId: z.string().uuid({ message: 'Invalid author ID' }).optional(),
   author: z.object({
     name: z.string().min(2, 'Author name must be at least 2 characters'),
-    email: z.string().email('Invalid author email format'),
+    email: z.string().email({ message: 'Invalid author email format' }),
     bio: z.string().optional(),
   }).optional(),
 }).refine(data => data.authorId || data.author, {
@@ -36,13 +40,13 @@ export const updateBookSchema = z.object({
 });
 
 export const borrowBookSchema = z.object({
-  bookId: z.string().uuid('Invalid book ID'),
+  bookId: z.string().uuid({ message: 'Invalid book ID' }),
 });
 
 // Return book validation is handled via URL params
 
 export const reserveBookSchema = z.object({
-  bookId: z.string().uuid('Invalid book ID'),
+  bookId: z.string().uuid({ message: 'Invalid book ID' }),
 });
 
 // Author creation is handled within book creation

@@ -58,4 +58,40 @@ export class AuthController {
       next(error);
     }
   }
+
+  static async refreshToken(req: Request, res: Response, next: NextFunction) {
+    try {
+      const tokens = await AuthService.refreshToken(req.body);
+      res.status(200).json(
+        createResponse(true, 'Token refreshed successfully', tokens)
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async logout(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { refreshToken } = req.body;
+      if (refreshToken) {
+        await AuthService.revokeRefreshToken(refreshToken);
+      }
+      res.status(200).json(
+        createResponse(true, 'Logged out successfully')
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async logoutAll(req: Request, res: Response, next: NextFunction) {
+    try {
+      await AuthService.revokeAllUserTokens(req.user!.id);
+      res.status(200).json(
+        createResponse(true, 'Logged out from all devices successfully')
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
 }
