@@ -1,316 +1,101 @@
 # 📚 Library Management System API
 
-A complete REST API for managing a library system with user authentication, book management, and borrowing functionality.
+A REST API for managing a library system with JWT authentication, book management, and borrowing functionality.
 
-## 🎯 Project Overview
+## Features
 
-This is a **Library Management System** built with modern web technologies. Think of it as a digital system that helps librarians manage books, users, and borrowing activities - just like a real library but online!
+- **User Management**: Register, login/logout with JWT refresh tokens
+- **Book Management**: CRUD operations for books and authors
+- **Borrowing System**: Borrow and return books with due date tracking
+- **Reservation System**: Reserve books when unavailable
+- **Search & Filter**: Find books by title, author, or ISBN
+- **Admin Panel**: Admin-only operations for book management
 
-### What This System Does:
-- **User Management**: Register users, login/logout, manage profiles
-- **Book Management**: Add books, update information, track copies
-- **Author Management**: Manage book authors and their information
-- **Borrowing System**: Let users borrow and return books
-- **Reservation System**: Allow users to reserve books when they're not available
-- **Search & Filter**: Find books by title, author, or other criteria
+## Tech Stack
 
-## 🏗️ Architecture Overview
+- **Backend**: Node.js, Express.js, TypeScript
+- **Database**: PostgreSQL with Prisma ORM
+- **Authentication**: JWT with refresh token rotation
+- **Validation**: Zod for input validation
+- **Testing**: Jest with comprehensive test coverage
 
-The project follows a **layered architecture** pattern, which means different parts of the code have specific responsibilities:
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    PRESENTATION LAYER                       │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
-│  │   Routes    │  │ Controllers │  │ Middleware  │         │
-│  └─────────────┘  └─────────────┘  └─────────────┘         │
-└─────────────────────────────────────────────────────────────┘
-┌─────────────────────────────────────────────────────────────┐
-│                     BUSINESS LAYER                          │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
-│  │   Services  │  │ Validation  │  │   Utils     │         │
-│  └─────────────┘  └─────────────┘  └─────────────┘         │
-└─────────────────────────────────────────────────────────────┘
-┌─────────────────────────────────────────────────────────────┐
-│                      DATA LAYER                             │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
-│  │    Prisma   │  │  Database   │  │   Config    │         │
-│  └─────────────┘  └─────────────┘  └─────────────┘         │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## 📁 Project Structure Explained
-
-### 🚀 **Entry Point**
-- `server.ts` - The main server file that starts everything
-
-### 🔐 **Authentication & Security**
-- `config/jwt.ts` - JWT token configuration
-- `middleware/auth.ts` - Authentication middleware
-- `middleware/validation.ts` - Input validation and sanitization
-- `middleware/errorHandler.ts` - Error handling middleware
-
-### 🛣️ **API Routes**
-- `routes/index.ts` - Main router that connects all route modules
-- `routes/auth.ts` - User authentication routes (login, register, etc.)
-- `routes/books.ts` - Book management routes
-- `routes/borrow.ts` - Borrowing and reservation routes
-
-### 🎮 **Controllers** (Request Handlers)
-- `controllers/authController.ts` - Handles user authentication requests
-- `controllers/bookController.ts` - Handles book-related requests
-- `controllers/borrowController.ts` - Handles borrowing requests
-
-### 💼 **Services** (Business Logic)
-- `services/authService.ts` - User authentication business logic
-- `services/bookService.ts` - Book management business logic
-- `services/borrowService.ts` - Borrowing business logic
-
-### 🗄️ **Database**
-- `prisma/schema.prisma` - Database schema definition
-- `prisma/seed.ts` - Sample data for testing
-- `config/database.ts` - Database connection configuration
-
-### ✅ **Validation**
-- `validation/schemas.ts` - Input validation rules using Zod
-
-### 🛠️ **Utilities**
-- `utils/logger.ts` - Logging functionality
-- `utils/helpers.ts` - Helper functions
-- `types/index.ts` - TypeScript type definitions
-
-## 🗄️ Database Schema Explained
-
-The database has 8 main tables:
-
-### 1. **Users Table** 👥
-```sql
-- id: Unique identifier
-- name: User's full name
-- email: Email address (unique)
-- phone: Phone number (optional)
-- password: Encrypted password
-- role: USER or ADMIN
-- createdAt: When account was created
-```
-
-### 2. **Books Table** 📚
-```sql
-- id: Unique identifier
-- title: Book title
-- isbn: International Standard Book Number (unique)
-- publicationYear: When book was published
-- availableCopies: How many copies are available to borrow
-- totalCopies: Total number of copies owned
-- isActive: Whether book is available in system
-- createdAt: When book was added
-```
-
-### 3. **Authors Table** ✍️
-```sql
-- id: Unique identifier
-- name: Author's name
-- email: Author's email (unique)
-- bio: Author biography (optional)
-- createdAt: When author was added
-```
-
-
-
-### 5. **BookCopies Table** 📖
-```sql
-- id: Unique identifier
-- bookId: Reference to book
-- condition: EXCELLENT, GOOD, FAIR, or POOR
-- createdAt: When copy was added
-```
-*This tracks individual physical copies of books*
-
-### 6. **BorrowRecords Table** 📋
-```sql
-- id: Unique identifier
-- userId: Who borrowed the book
-- bookCopyId: Which specific copy was borrowed
-- borrowedAt: When book was borrowed
-- dueDate: When book should be returned
-- returnedAt: When book was actually returned (null if not returned)
-- status: ACTIVE, RETURNED, or OVERDUE
-- createdAt: When record was created
-```
-
-### 7. **Reservations Table** ⏰
-```sql
-- id: Unique identifier
-- userId: Who reserved the book
-- bookId: Which book was reserved
-- status: PENDING, FULFILLED, or CANCELLED
-- createdAt: When reservation was made
-```
-
-### 8. **RefreshTokens Table** 🔄
-```sql
-- id: Unique identifier
-- token: The refresh token string (unique)
-- userId: Which user owns this token
-- expiresAt: When token expires
-- createdAt: When token was created
-- revokedAt: When token was revoked (null if active)
-```
-*This tracks refresh tokens for secure authentication*
-
-## 🔄 How Data Flows Through the System
-
-### Example: User Borrows a Book
-
-1. **User sends request**: `POST /api/borrow` with book ID
-2. **Route receives request**: `routes/borrow.ts` catches the request
-3. **Middleware processes**: Authentication checks if user is logged in
-4. **Controller handles**: `borrowController.ts` receives the request
-5. **Service processes**: `borrowService.ts` contains the business logic
-6. **Database updated**: Prisma updates the database
-7. **Response sent**: Success/error message sent back to user
-
-```
-User Request → Route → Middleware → Controller → Service → Database → Response
-```
-
-## 🔐 Security Features
-
-### 1. **JWT Authentication with Refresh Tokens**
-- Users get both access and refresh tokens when they login
-- Access tokens are short-lived (15 minutes) for security
-- Refresh tokens are long-lived (7 days) for user convenience
-- Refresh tokens are stored in database and can be revoked
-- Token rotation: new refresh token issued on each refresh
-- Separate logout endpoints for single device or all devices
-
-### 2. **Password Security**
-- Passwords are encrypted using bcrypt
-- Strong password requirements enforced
-- Passwords never stored in plain text
-
-### 3. **Input Validation**
-- All user inputs are validated using Zod
-- Prevents malicious data from entering system
-- Ensures data quality and consistency
-
-### 4. **Rate Limiting**
-- Limits how many requests a user can make
-- Prevents abuse and attacks
-- Protects server resources
-
-### 5. **CORS Protection**
-- Controls which websites can access the API
-- Prevents unauthorized cross-origin requests
-
-## 🚀 Getting Started
+## Quick Start
 
 ### Prerequisites
-- Node.js (version 18 or higher)
-- PostgreSQL database
-- npm or yarn package manager
+- Node.js 18+
+- PostgreSQL
+- npm
 
-### Installation Steps
+### Setup
+```bash
+# Clone and install
+git clone <repository-url>
+cd library-management-system
+npm install
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd library-management-system
-   ```
+# Environment setup
+cp .env.example .env
+# Edit .env with your database URL and JWT secrets
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+# Database setup
+npm run db:generate
+npm run db:migrate
+npm run db:seed
 
-3. **Set up environment variables**
-   ```bash
-   cp env.example .env
-   # Edit .env with your database credentials
-   ```
-
-4. **Set up the database**
-   ```bash
-   npm run db:generate  # Generate Prisma client
-   npm run db:push      # Push schema to database
-   npm run db:seed      # Add sample data
-   ```
-
-5. **Start the server**
-   ```bash
-   npm run dev  # Development mode
-   # or
-   npm run build && npm start  # Production mode
-   ```
+# Start development server
+npm run dev
+```
 
 ### Environment Variables
 ```env
-# Database
 DATABASE_URL="postgresql://username:password@localhost:5432/library_db"
-
-# JWT
-JWT_SECRET="your-secret-key"
-JWT_EXPIRES_IN="24h"
+JWT_SECRET="your-jwt-secret"
+JWT_EXPIRE="15m"
 JWT_REFRESH_SECRET="your-refresh-secret"
-JWT_REFRESH_EXPIRES_IN="7d"
-
-# Server
+JWT_REFRESH_EXPIRE="7d"
 PORT=3000
-NODE_ENV=development
-CORS_ORIGIN="*"
 ```
 
-## 📖 API Endpoints
+## API Endpoints
 
 ### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - User login with access & refresh tokens
-- `POST /api/auth/refresh` - Refresh access token using refresh token
-- `POST /api/auth/logout` - Logout from current device (revoke refresh token)
-- `POST /api/auth/logout-all` - Logout from all devices (revoke all user tokens)
+- `POST /api/auth/register` - Register user
+- `POST /api/auth/login` - Login (returns access & refresh tokens)
+- `POST /api/auth/refresh` - Refresh access token
+- `POST /api/auth/logout` - Logout from current device
+- `POST /api/auth/logout-all` - Logout from all devices
 
-### Books Management
-- `GET /api/books` - Get all books (with pagination & search)
-- `GET /api/books/:id` - Get book details with author info
-- `POST /api/books` - Add a new book (Admin only)
-- `PUT /api/books/:id` - Update book details (Admin only)
-- `DELETE /api/books/:id` - Delete a book (Admin only)
+### Books
+- `GET /api/books` - List books (with search & pagination)
+- `GET /api/books/:id` - Get book details
+- `POST /api/books` - Create book (Admin)
+- `PUT /api/books/:id` - Update book (Admin)
+- `DELETE /api/books/:id` - Delete book (Admin)
 
-### Borrowing System
-- `POST /api/borrow` - Borrow a book (authenticated users)
-- `POST /api/return/:borrowId` - Return a borrowed book
-- `GET /api/my-books` - Get user's borrowed books history
-- `GET /api/overdue` - Get all overdue books (Admin only)
+### Borrowing
+- `POST /api/borrow` - Borrow a book
+- `POST /api/return/:borrowId` - Return a book
+- `GET /api/my-books` - User's borrowed books
+- `GET /api/overdue` - Overdue books (Admin)
 
-### Reservation System
-- `POST /api/reserve` - Reserve a book when not available
-- `GET /api/reservations` - Get user's reservations
-- `DELETE /api/reservations/:id` - Cancel a reservation
+### Reservations
+- `POST /api/reserve` - Reserve a book
+- `GET /api/reservations` - User's reservations
+- `DELETE /api/reservations/:id` - Cancel reservation
 
-### System
-- `GET /api/health` - Health check endpoint
+## Authentication
 
-## 🔄 Refresh Token Implementation
+The API uses JWT tokens with refresh token rotation for security:
 
-### Overview
-The system implements a secure refresh token mechanism that provides:
-- **Enhanced Security**: Short-lived access tokens (15 minutes)
-- **Better UX**: Long-lived refresh tokens (7 days) prevent frequent re-logins
-- **Token Rotation**: New tokens issued on each refresh, old ones revoked
-- **Selective Logout**: Users can logout from specific devices or all devices
+- **Access tokens**: Short-lived (15 minutes)
+- **Refresh tokens**: Long-lived (7 days), stored in database
+- **Token rotation**: New refresh token issued on each refresh
+- **Selective logout**: Logout from current device or all devices
 
-### Authentication Flow
-1. **Login/Register**: Returns both `accessToken` and `refreshToken`
-2. **API Requests**: Use `accessToken` in Authorization header
-3. **Token Expiry**: When access token expires, use refresh token
-4. **Token Refresh**: Exchange refresh token for new access + refresh tokens
-5. **Logout**: Revoke refresh tokens to prevent further use
-
-### API Response Format
+### Login Response
 ```json
 {
   "success": true,
-  "message": "Login successful",
   "data": {
     "user": { ... },
     "accessToken": "eyJhbGciOiJIUzI1NiIs...",
@@ -319,119 +104,61 @@ The system implements a secure refresh token mechanism that provides:
 }
 ```
 
-### Security Features
-- **Database Storage**: Refresh tokens stored with expiration tracking
-- **Automatic Revocation**: Old tokens revoked when new ones issued
-- **Cascade Deletion**: Tokens deleted when user account is deleted
-- **Separate Secrets**: Different signing keys for access vs refresh tokens
-- **Expiration Tracking**: Database tracks token validity and revocation status
-
-### Usage Examples
+### Usage
 ```bash
-# Login and get tokens
+# Login
 curl -X POST /api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"password123"}'
+  -d '{"email":"admin@library.com","password":"admin123"}'
 
-# Use access token for API calls
+# Use access token
 curl -X GET /api/books \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
 
-# Refresh tokens when access token expires
+# Refresh token
 curl -X POST /api/auth/refresh \
   -H "Content-Type: application/json" \
   -d '{"refreshToken":"YOUR_REFRESH_TOKEN"}'
-
-# Logout from current device
-curl -X POST /api/auth/logout \
-  -H "Content-Type: application/json" \
-  -d '{"refreshToken":"YOUR_REFRESH_TOKEN"}'
-
-# Logout from all devices
-curl -X POST /api/auth/logout-all \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
 ```
 
-## 🔒 Edge Cases Handled
+## Default Credentials
 
-### Borrowing Edge Cases
-- ✅ User cannot borrow more than 5 books
-- ✅ User cannot borrow the same book twice
-- ✅ User with overdue books cannot borrow new books
-- ✅ Books with pending reservations require reservation first
-- ✅ Automatic selection of best condition book copies
+After running `npm run db:seed`:
 
-### Reservation Edge Cases
-- ✅ User cannot reserve more than 3 books
-- ✅ User cannot reserve books they already borrowed
-- ✅ User cannot reserve available books (must borrow directly)
-- ✅ Queue position tracking for reservations
-- ✅ Automatic notification when reserved book becomes available
+- **Admin**: `admin@library.com` / `admin123`
+- **User**: `john@example.com` / `user123`
 
-### Return Edge Cases
-- ✅ Automatic overdue status calculation
-- ✅ Notification to next user in reservation queue
-- ✅ Proper availability count updates
-- ✅ User can only return their own books
-
-### Authentication Edge Cases
-- ✅ Expired refresh tokens are automatically rejected
-- ✅ Revoked refresh tokens cannot be used again
-- ✅ Invalid refresh tokens trigger security cleanup
-- ✅ User deletion cascades to refresh token cleanup
-- ✅ Token rotation prevents replay attacks
-- ✅ Graceful handling of missing refresh tokens in logout
-
-## 🧪 Testing
+## Testing
 
 ```bash
-npm test  # Run all tests
-npm test -- --watch  # Run tests in watch mode
+npm test              # Run all tests
+npm test -- --watch   # Watch mode
+npm test -- --coverage # Coverage report
 ```
 
-## 📚 Key Technologies Used
+## Project Structure
 
-### Backend
-- **Node.js** - JavaScript runtime
-- **Express.js** - Web framework
-- **TypeScript** - Type-safe JavaScript
-- **Prisma** - Database ORM
-- **PostgreSQL** - Database
-- **JWT** - Authentication
-- **Zod** - Input validation
-- **Winston** - Logging
+```
+src/
+├── controllers/     # Request handlers
+├── services/        # Business logic
+├── routes/          # API routes
+├── middleware/      # Express middleware
+├── prisma/          # Database schema & migrations
+├── types/           # TypeScript definitions
+└── validation/      # Input validation schemas
+```
 
-### Development Tools
-- **Jest** - Testing framework
-- **Nodemon** - Auto-restart on file changes
-- **Swagger** - API documentation
+## Development
 
-## 🎓 Learning Points for Interns
+```bash
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run db:studio    # Open Prisma Studio
+npm run db:reset     # Reset database
+```
 
-### 1. **Architecture Patterns**
-- **MVC Pattern**: Model-View-Controller separation
-- **Layered Architecture**: Separation of concerns
-- **Middleware Pattern**: Request processing pipeline
+## License
 
-### 2. **Database Design**
-- **Relationships**: One-to-many, many-to-many
-- **Normalization**: Proper data structure
-- **Indexing**: Performance optimization
-
-### 3. **Security Best Practices**
-- **Authentication**: JWT access & refresh tokens
-- **Token Management**: Rotation, revocation, and expiration
-- **Authorization**: Role-based access control
-- **Input Validation**: Data sanitization and type checking
-- **Rate Limiting**: Abuse prevention and resource protection
-
-### 4. **API Design**
-- **RESTful Principles**: Standard HTTP methods
-- **Error Handling**: Consistent error responses
-- **Documentation**: Swagger/OpenAPI
-
-### 5. **Code Organization**
-- **Modular Structure**: Separate files for different concerns
-- **Type Safety**: TypeScript benefits
-- **Testing**: Unit and integration tests
+MIT License
 
