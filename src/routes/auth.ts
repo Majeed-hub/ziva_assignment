@@ -2,8 +2,12 @@ import { Router } from 'express';
 import { AuthController } from '../controllers/authController';
 import { validateRequest } from '../middleware/validation';
 import { registerSchema, loginSchema } from '../validation/schema';
+import { authRateLimit } from '../middleware/rateLimiter';
 
 const router = Router();
+
+// Apply stricter rate limiting to all auth routes
+router.use(authRateLimit);
 
 /**
  * @swagger

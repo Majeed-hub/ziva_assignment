@@ -117,7 +117,7 @@ export class BookService {
 
   static async getBookById(bookId: string) {
     const book = await prisma.book.findUnique({
-      where: { id: bookId },
+      where: { id: bookId, deletedAt: null },
       include: {
         author: {
           select: { id: true, name: true, email: true, bio: true }
@@ -240,7 +240,7 @@ export class BookService {
 
   static async deleteBook(bookId: string) {
     const book = await prisma.book.findUnique({
-      where: { id: bookId }
+      where: { id: bookId, deletedAt: null }
     });
 
     if (!book) {

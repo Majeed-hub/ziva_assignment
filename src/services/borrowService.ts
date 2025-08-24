@@ -9,7 +9,7 @@ export class BorrowService {
     
     // Check if book exists and is available
     const book = await prisma.book.findUnique({
-      where: { id: borrowData.bookId },
+      where: { id: borrowData.bookId, deletedAt: null },
       include: {
         bookCopies: {
           where: {
@@ -57,7 +57,7 @@ export class BorrowService {
 
     // one user can borrow only 3 books at a time
     if (activeBorrows >= 3) {
-      throw new AppError('You have reached the maximum borrowing limit (5 books)', 400);
+      throw new AppError('You have reached the maximum borrowing limit (3 books)', 400);
     }
 
     // Check if user has overdue books
@@ -176,14 +176,6 @@ export class BorrowService {
       }
     });
 
-    // Update book available copies
-    // await prisma.book.update({
-    //   where: { id: borrowRecord.bookCopy.bookId },
-    //   data: { availableCopies: { increment: 1 } }
-    // });
-
-    //instead of making the copy available and notifying, assign this copy directly to the first user in the reservation table
-
 
     // Check for pending reservations and notify next user
     const nextReservation = await prisma.reservation.findFirst({
@@ -203,7 +195,7 @@ export class BorrowService {
       const dueDate = calculateDueDate(borrowDate);
 
     // map the returned copy to the nextReservation
-      const FulfilledReservation = await prisma.borrowRecord.create({
+      await prisma.borrowRecord.create({
       data: {
         userId: nextReservation?.user.id,
         bookCopyId: borrowRecord.bookCopy.id,
@@ -232,6 +224,14 @@ export class BorrowService {
         data: { status: 'FULFILLED' }
       });
 
+    }else{
+
+       // Update book available copies
+      await prisma.book.update({
+      where: { id: borrowRecord.bookCopy.bookId },
+      data: { availableCopies: { increment: 1 } }
+    });
+
     }
 
     // let notificationMessage = null;
@@ -248,7 +248,7 @@ export class BorrowService {
 
   static async reserveBook(userId: string, reserveData: ReserveBookRequest) {
     const book = await prisma.book.findUnique({
-      where: { id: reserveData.bookId },
+      where: { id: reserveData.bookId, deletedAt: null },
       include: {
         reservations: {
           where: { status: 'PENDING' },

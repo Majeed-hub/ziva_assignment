@@ -6,6 +6,7 @@ import routes from './routes';
 import { errorHandler, notFound } from './middleware/errorHandler';
 import { logger } from './utils/logger';
 import { specs, swaggerUi } from './config/swagger';
+import { generalRateLimit } from './middleware/rateLimiter';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -23,6 +24,9 @@ app.use(express.urlencoded({ extended: true }));
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
+
+// Rate limiting
+app.use('/api', generalRateLimit);
 
 // Swagger UI
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
