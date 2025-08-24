@@ -42,10 +42,10 @@ app.use(errorHandler);
 
 // Start server
 app.listen(PORT, () => {
-  logger.info(`🚀 Library Management System API is running on port ${PORT}`);
-  logger.info(`📚 Environment: ${process.env.NODE_ENV || 'development'}`);
-  logger.info(`🔗 Health check: http://localhost:${PORT}/api/health`);
-  logger.info(`📖 API Documentation: http://localhost:${PORT}/api-docs`);
+  logger.info(`Library Management System API is running on port ${PORT}`);
+  logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  logger.info(`Health check: http://localhost:${PORT}/api/health`);
+  logger.info(`API Documentation: http://localhost:${PORT}/api-docs`);
 });
 
 export default app;

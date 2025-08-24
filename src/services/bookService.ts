@@ -5,9 +5,9 @@ import { generatePagination } from '../utils/helper';
 
 export class BookService {
   static async createBook(bookData: any) {
-    // Check if ISBN already exists
+    // Check if ISBN already exists & the book is not soft deleted
     const existingBook = await prisma.book.findUnique({
-      where: { isbn: bookData.isbn }
+      where: { isbn: bookData.isbn, deletedAt: null }
     });
 
     if (existingBook) {
@@ -92,7 +92,9 @@ export class BookService {
 
     const [books, total] = await Promise.all([
       prisma.book.findMany({
-        where,
+
+        // only records with isActive true should be retrieved
+        where: {isActive: true},
         include: {
           author: {
             select: { id: true, name: true, email: true }
@@ -150,7 +152,7 @@ export class BookService {
 
   static async updateBook(bookId: string, updateData: UpdateBookRequest) {
     const existingBook = await prisma.book.findUnique({
-      where: { id: bookId }
+      where: { id: bookId, deletedAt: null }
     });
 
     if (!existingBook) {
@@ -184,6 +186,7 @@ export class BookService {
           data: newCopies
         });
       } else if (updateData.totalCopies < currentCopies) {
+
         // Remove excess copies (only if they're not borrowed)
         const copiesToRemove = await prisma.bookCopy.findMany({
           where: {
@@ -207,6 +210,11 @@ export class BookService {
           status: 'ACTIVE'
         }
       });
+      
+      if (updateData.totalCopies < activeBorrows) {
+          throw new AppError('Cannot reduce total copies below the number of active borrows', 400);
+        }
+
 
       const availableCopies = updateData.totalCopies - activeBorrows;
       
@@ -251,8 +259,10 @@ export class BookService {
       throw new AppError('Cannot delete book with active borrows', 400);
     }
 
-    await prisma.book.delete({
-      where: { id: bookId }
+    // books delete
+    await prisma.book.update({
+      where: { id: bookId },
+      data: { deletedAt: new Date()}
     });
 
     return { message: 'Book deleted successfully' };
@@ -276,6 +286,10 @@ export class BookService {
 
   static async getAllAuthors() {
     const authors = await prisma.author.findMany({
+
+      // author with deleteAt = null
+      where: { deletedAt : null},
+
       include: {
         _count: {
           select: { books: true }
@@ -285,5 +299,25 @@ export class BookService {
     });
 
     return authors;
+  }
+
+  // soft delete author
+  static async deleteAuthor(authorId: string){
+
+    // check if auhtor exist or not
+    const existingAuthor = await prisma.author.findUnique({
+      where: { id: authorId }
+    });
+
+    if (!existingAuthor) {
+      throw new AppError('Author with this Id does not exists', 400);
+    }
+
+     await prisma.author.update({
+      where: {id: authorId},
+      data: { deletedAt: new Date()}
+    })
+
+    return { message: " Author Deleted Successfully"}
   }
 }

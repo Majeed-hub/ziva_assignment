@@ -6,6 +6,7 @@ import { BorrowingStatus } from '@prisma/client';
 
 export class BorrowService {
   static async borrowBook(userId: string, borrowData: BorrowBookRequest) {
+    
     // Check if book exists and is available
     const book = await prisma.book.findUnique({
       where: { id: borrowData.bookId },
@@ -49,12 +50,13 @@ export class BorrowService {
       throw new AppError('You already have this book borrowed', 400);
     }
 
-    // Check user's borrowing limit (max 5 books)
+    // Check user's borrowing limit max 3
     const activeBorrows = await prisma.borrowRecord.count({
       where: { userId, status: 'ACTIVE' }
     });
 
-    if (activeBorrows >= 5) {
+    // one user can borrow only 3 books at a time
+    if (activeBorrows >= 3) {
       throw new AppError('You have reached the maximum borrowing limit (5 books)', 400);
     }
 
@@ -175,10 +177,13 @@ export class BorrowService {
     });
 
     // Update book available copies
-    await prisma.book.update({
-      where: { id: borrowRecord.bookCopy.bookId },
-      data: { availableCopies: { increment: 1 } }
-    });
+    // await prisma.book.update({
+    //   where: { id: borrowRecord.bookCopy.bookId },
+    //   data: { availableCopies: { increment: 1 } }
+    // });
+
+    //instead of making the copy available and notifying, assign this copy directly to the first user in the reservation table
+
 
     // Check for pending reservations and notify next user
     const nextReservation = await prisma.reservation.findFirst({
@@ -192,14 +197,52 @@ export class BorrowService {
       }
     });
 
-    let notificationMessage = null;
-    if (nextReservation) {
-      notificationMessage = `Book is now available for ${nextReservation.user.name} (${nextReservation.user.email})`;
+      if (nextReservation) {
+
+      const borrowDate = new Date();
+      const dueDate = calculateDueDate(borrowDate);
+
+    // map the returned copy to the nextReservation
+      const FulfilledReservation = await prisma.borrowRecord.create({
+      data: {
+        userId: nextReservation?.user.id,
+        bookCopyId: borrowRecord.bookCopy.id,
+        borrowedAt: borrowDate,
+        dueDate,
+        status: 'ACTIVE'
+      },
+      include: {
+        bookCopy: {
+          include: {
+            book: {
+              include: { author: true }
+            }
+          }
+        },
+        user: {
+          select: { id: true, name: true, email: true }
+        }
+      }
+    });
+
+    // change reservation status
+ 
+      await prisma.reservation.update({
+        where: { id: nextReservation.id },
+        data: { status: 'FULFILLED' }
+      });
+
     }
 
+    // let notificationMessage = null;
+    // if (nextReservation) {
+    //   notificationMessage = `Book is now available for ${nextReservation.user.name} (${nextReservation.user.email})`;
+    // }
+
+   
     return { 
       borrowRecord: updatedRecord, 
-      notification: notificationMessage 
+      // notification: notificationMessage 
     };
   }
 
