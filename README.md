@@ -81,7 +81,7 @@ The project follows a **layered architecture** pattern, which means different pa
 
 ## 🗄️ Database Schema Explained
 
-The database has 6 main tables:
+The database has 8 main tables:
 
 ### 1. **Users Table** 👥
 ```sql
@@ -147,6 +147,17 @@ The database has 6 main tables:
 - createdAt: When reservation was made
 ```
 
+### 8. **RefreshTokens Table** 🔄
+```sql
+- id: Unique identifier
+- token: The refresh token string (unique)
+- userId: Which user owns this token
+- expiresAt: When token expires
+- createdAt: When token was created
+- revokedAt: When token was revoked (null if active)
+```
+*This tracks refresh tokens for secure authentication*
+
 ## 🔄 How Data Flows Through the System
 
 ### Example: User Borrows a Book
@@ -165,10 +176,13 @@ User Request → Route → Middleware → Controller → Service → Database �
 
 ## 🔐 Security Features
 
-### 1. **JWT Authentication**
-- Users get a token when they login
-- Token is required for protected routes
-- Tokens expire after a certain time
+### 1. **JWT Authentication with Refresh Tokens**
+- Users get both access and refresh tokens when they login
+- Access tokens are short-lived (15 minutes) for security
+- Refresh tokens are long-lived (7 days) for user convenience
+- Refresh tokens are stored in database and can be revoked
+- Token rotation: new refresh token issued on each refresh
+- Separate logout endpoints for single device or all devices
 
 ### 2. **Password Security**
 - Passwords are encrypted using bcrypt
@@ -250,7 +264,10 @@ CORS_ORIGIN="*"
 
 ### Authentication
 - `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - User login with JWT token
+- `POST /api/auth/login` - User login with access & refresh tokens
+- `POST /api/auth/refresh` - Refresh access token using refresh token
+- `POST /api/auth/logout` - Logout from current device (revoke refresh token)
+- `POST /api/auth/logout-all` - Logout from all devices (revoke all user tokens)
 
 ### Books Management
 - `GET /api/books` - Get all books (with pagination & search)
@@ -273,6 +290,68 @@ CORS_ORIGIN="*"
 ### System
 - `GET /api/health` - Health check endpoint
 
+## 🔄 Refresh Token Implementation
+
+### Overview
+The system implements a secure refresh token mechanism that provides:
+- **Enhanced Security**: Short-lived access tokens (15 minutes)
+- **Better UX**: Long-lived refresh tokens (7 days) prevent frequent re-logins
+- **Token Rotation**: New tokens issued on each refresh, old ones revoked
+- **Selective Logout**: Users can logout from specific devices or all devices
+
+### Authentication Flow
+1. **Login/Register**: Returns both `accessToken` and `refreshToken`
+2. **API Requests**: Use `accessToken` in Authorization header
+3. **Token Expiry**: When access token expires, use refresh token
+4. **Token Refresh**: Exchange refresh token for new access + refresh tokens
+5. **Logout**: Revoke refresh tokens to prevent further use
+
+### API Response Format
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "user": { ... },
+    "accessToken": "eyJhbGciOiJIUzI1NiIs...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIs..."
+  }
+}
+```
+
+### Security Features
+- **Database Storage**: Refresh tokens stored with expiration tracking
+- **Automatic Revocation**: Old tokens revoked when new ones issued
+- **Cascade Deletion**: Tokens deleted when user account is deleted
+- **Separate Secrets**: Different signing keys for access vs refresh tokens
+- **Expiration Tracking**: Database tracks token validity and revocation status
+
+### Usage Examples
+```bash
+# Login and get tokens
+curl -X POST /api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","password":"password123"}'
+
+# Use access token for API calls
+curl -X GET /api/books \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+
+# Refresh tokens when access token expires
+curl -X POST /api/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{"refreshToken":"YOUR_REFRESH_TOKEN"}'
+
+# Logout from current device
+curl -X POST /api/auth/logout \
+  -H "Content-Type: application/json" \
+  -d '{"refreshToken":"YOUR_REFRESH_TOKEN"}'
+
+# Logout from all devices
+curl -X POST /api/auth/logout-all \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
 ## 🔒 Edge Cases Handled
 
 ### Borrowing Edge Cases
@@ -294,6 +373,14 @@ CORS_ORIGIN="*"
 - ✅ Notification to next user in reservation queue
 - ✅ Proper availability count updates
 - ✅ User can only return their own books
+
+### Authentication Edge Cases
+- ✅ Expired refresh tokens are automatically rejected
+- ✅ Revoked refresh tokens cannot be used again
+- ✅ Invalid refresh tokens trigger security cleanup
+- ✅ User deletion cascades to refresh token cleanup
+- ✅ Token rotation prevents replay attacks
+- ✅ Graceful handling of missing refresh tokens in logout
 
 ## 🧪 Testing
 
@@ -332,10 +419,11 @@ npm test -- --watch  # Run tests in watch mode
 - **Indexing**: Performance optimization
 
 ### 3. **Security Best Practices**
-- **Authentication**: JWT tokens
-- **Authorization**: Role-based access
-- **Input Validation**: Data sanitization
-- **Rate Limiting**: Abuse prevention
+- **Authentication**: JWT access & refresh tokens
+- **Token Management**: Rotation, revocation, and expiration
+- **Authorization**: Role-based access control
+- **Input Validation**: Data sanitization and type checking
+- **Rate Limiting**: Abuse prevention and resource protection
 
 ### 4. **API Design**
 - **RESTful Principles**: Standard HTTP methods
